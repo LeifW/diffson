@@ -1,8 +1,8 @@
 import scalariform.formatter.preferences._
 
 val scala211 = "2.11.12"
-val scala212 = "2.12.6"
-val scala213 = "2.13.0-M3"
+val scala212 = "2.12.7"
+val scala213 = "2.13.0-M4"
 
 lazy val commonSettings = Seq(
   organization := "org.gnieh",
@@ -49,7 +49,8 @@ lazy val core = project.in(file("core"))
     name := "diffson-core",
     crossScalaVersions := Seq(scala211, scala212, scala213),
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % "3.0.5-M1" % Test,
+      "org.typelevel" %% "cats-core" % "1.4.0",
+      "org.scalatest" %% "scalatest" % "3.0.5" % Test,
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test),
     OsgiKeys.additionalHeaders := Map (
       "Bundle-Name" -> "Gnieh Diffson Core"

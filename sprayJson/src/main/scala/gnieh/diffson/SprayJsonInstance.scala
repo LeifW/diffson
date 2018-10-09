@@ -18,10 +18,11 @@ package gnieh.diffson
 
 import spray.json._
 
-object sprayJson extends SprayJsonInstance
+object sprayJson extends SprayJsonProvider
 
-class SprayJsonInstance extends DiffsonInstance[JsValue] {
+class SprayJsonProvider extends JsonProvider[JsValue] {
 
+  /*
   object DiffsonProtocol extends DiffsonProtocol
 
   trait DiffsonProtocol extends DefaultJsonProtocol {
@@ -158,56 +159,35 @@ class SprayJsonInstance extends DiffsonInstance[JsValue] {
       }
 
   }
+  */
 
-  object provider extends JsonProvider {
+  val JsNull: JsValue =
+    spray.json.JsNull
 
-    type Marshaller[T] = JsonWriter[T]
-    type Unmarshaller[T] = JsonReader[T]
+  def applyArray(elems: Vector[JsValue]): JsValue =
+    spray.json.JsArray(elems)
 
-    val JsNull: JsValue =
-      spray.json.JsNull
+  def applyObject(fields: Map[String, JsValue]): JsValue =
+    spray.json.JsObject(fields)
 
-    def applyArray(elems: Vector[JsValue]): JsValue =
-      spray.json.JsArray(elems)
+  def compactPrint(value: JsValue): String =
+    value.compactPrint
 
-    def applyObject(fields: Map[String, JsValue]): JsValue =
-      spray.json.JsObject(fields)
+  def prettyPrint(value: JsValue): String =
+    value.prettyPrint
 
-    def compactPrint(value: JsValue): String =
-      value.compactPrint
+  def unapplyArray(value: JsValue): Option[Vector[JsValue]] = value match {
+    case spray.json.JsArray(elems) =>
+      Some(elems)
+    case _ =>
+      None
+  }
 
-    def marshall[T: Marshaller](value: T): JsValue =
-      value.toJson
-
-    def unmarshall[T: Unmarshaller](value: JsValue): T =
-      value.convertTo[T]
-
-    def parseJson(s: String): JsValue =
-      JsonParser(s)
-
-    implicit val patchMarshaller: Marshaller[JsonPatch] =
-      DiffsonProtocol.JsonPatchFormat
-
-    implicit val patchUnmarshaller: Unmarshaller[JsonPatch] =
-      DiffsonProtocol.JsonPatchFormat
-
-    def prettyPrint(value: JsValue): String =
-      value.prettyPrint
-
-    def unapplyArray(value: JsValue): Option[Vector[JsValue]] = value match {
-      case spray.json.JsArray(elems) =>
-        Some(elems)
-      case _ =>
-        None
-    }
-
-    def unapplyObject(value: JsValue): Option[Map[String, JsValue]] = value match {
-      case spray.json.JsObject(fields) =>
-        Some(fields)
-      case _ =>
-        None
-    }
-
+  def unapplyObject(value: JsValue): Option[Map[String, JsValue]] = value match {
+    case spray.json.JsObject(fields) =>
+      Some(fields)
+    case _ =>
+      None
   }
 
 }

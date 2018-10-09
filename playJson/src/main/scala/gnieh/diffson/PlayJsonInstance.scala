@@ -18,10 +18,11 @@ package gnieh.diffson
 
 import play.api.libs.json._
 
-object playJson extends PlayJsonInstance
+object playJson extends PlayJsonProvider
 
-class PlayJsonInstance extends DiffsonInstance[JsValue] {
+class PlayJsonProvider extends JsonProvider[JsValue] {
 
+  /*
   object DiffsonProtocol {
 
     implicit val PointerFormat: Format[JsonPointer] =
@@ -142,56 +143,35 @@ class PlayJsonInstance extends DiffsonInstance[JsValue] {
         Writes(patch => JsArray(patch.ops.map(Json.toJson(_)).toVector)))
 
   }
+  */
 
-  object provider extends JsonProvider {
+  val JsNull: JsValue =
+    play.api.libs.json.JsNull
 
-    type Marshaller[T] = Writes[T]
-    type Unmarshaller[T] = Reads[T]
+  def applyArray(elems: Vector[JsValue]): JsValue =
+    play.api.libs.json.JsArray(elems)
 
-    val JsNull: JsValue =
-      play.api.libs.json.JsNull
+  def applyObject(fields: Map[String, JsValue]): JsValue =
+    play.api.libs.json.JsObject(fields)
 
-    def applyArray(elems: Vector[JsValue]): JsValue =
-      play.api.libs.json.JsArray(elems)
+  def compactPrint(value: JsValue): String =
+    Json.stringify(value)
 
-    def applyObject(fields: Map[String, JsValue]): JsValue =
-      play.api.libs.json.JsObject(fields)
+  def prettyPrint(value: JsValue): String =
+    Json.prettyPrint(value)
 
-    def compactPrint(value: JsValue): String =
-      Json.stringify(value)
+  def unapplyArray(value: JsValue): Option[Vector[JsValue]] = value match {
+    case play.api.libs.json.JsArray(elems) =>
+      Some(elems.toVector)
+    case _ =>
+      None
+  }
 
-    def marshall[T: Marshaller](value: T): JsValue =
-      Json.toJson(value)
-
-    def unmarshall[T: Unmarshaller](value: JsValue): T =
-      value.as[T]
-
-    def parseJson(s: String): JsValue =
-      Json.parse(s)
-
-    implicit val patchMarshaller: Marshaller[JsonPatch] =
-      DiffsonProtocol.JsonPatchFormat
-
-    implicit val patchUnmarshaller: Unmarshaller[JsonPatch] =
-      DiffsonProtocol.JsonPatchFormat
-
-    def prettyPrint(value: JsValue): String =
-      Json.prettyPrint(value)
-
-    def unapplyArray(value: JsValue): Option[Vector[JsValue]] = value match {
-      case play.api.libs.json.JsArray(elems) =>
-        Some(elems.toVector)
-      case _ =>
-        None
-    }
-
-    def unapplyObject(value: JsValue): Option[Map[String, JsValue]] = value match {
-      case play.api.libs.json.JsObject(fields) =>
-        Some(fields.toMap)
-      case _ =>
-        None
-    }
-
+  def unapplyObject(value: JsValue): Option[Map[String, JsValue]] = value match {
+    case play.api.libs.json.JsObject(fields) =>
+      Some(fields.toMap)
+    case _ =>
+      None
   }
 
 }

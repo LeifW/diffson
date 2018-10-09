@@ -15,12 +15,17 @@
 */
 package gnieh.diffson
 
-trait LowPriorityImplicits[JsValue] {
-  this: JsonPointerSupport[JsValue] =>
+import cats._
+import cats.implicits._
 
-  implicit val errorHandler: PointerErrorHandler = {
-    case (_, name, parent) =>
-      throw new PointerException(s"element $name does not exist at path ${parent.serialize}")
-  }
+import scala.language.higherKinds
+
+/** A provider for patch types and operations.
+ *  The provided `Patch` must operate on instances of `JsValue`.
+ */
+trait PatchProvider[JsValue, Patch[_]] {
+
+  /** Applies a patch to the given Json value, and returns the patched value. */
+  def patch[F[_]](json: JsValue, p: Patch[JsValue])(implicit F: MonadError[F, Throwable]): F[JsValue]
 
 }

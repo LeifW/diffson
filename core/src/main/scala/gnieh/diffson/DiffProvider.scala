@@ -15,8 +15,11 @@
 */
 package gnieh.diffson
 
-abstract class DiffsonInstance[JsValue] extends JsonDiffSupport[JsValue] with JsonPatchSupport[JsValue] with JsonPointerSupport[JsValue] with JsonSupport[JsValue] with LowPriorityImplicits[JsValue] {
+import scala.language.higherKinds
 
-  val provider: JsonProvider
+abstract class DiffProvider[JsValue, Patch[_]] {
+
+  /** Computes the patch from `json1` to `json2`. */
+  def diff(json1: JsValue, json2: JsValue): Patch[JsValue]
 
 }

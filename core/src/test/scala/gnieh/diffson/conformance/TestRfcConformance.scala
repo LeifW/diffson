@@ -14,29 +14,31 @@
 * limitations under the License.
 */
 package gnieh.diffson
+package jsonpatch
 package conformance
+
+import cats.implicits._
+
+import scala.util.Try
 
 import org.scalatest._
 
-abstract class TestRfcConformance[JsValue, Instance <: DiffsonInstance[JsValue]](val instance: Instance) extends FunSuite with Matchers {
+abstract class TestRfcConformance[JsValue](implicit val J: JsonProvider[JsValue]) extends FunSuite with Matchers {
 
-  import instance._
-  import provider._
-
-  type JsArray <: JsValue
+  import J._
 
   trait ConformanceTest
 
   case class SuccessConformanceTest(
       doc: JsValue,
-      patch: JsArray,
+      patch: JsonPatch[JsValue],
       expected: Option[JsValue],
       comment: Option[String],
       disabled: Option[Boolean]) extends ConformanceTest
 
   case class ErrorConformanceTest(
       doc: JsValue,
-      patch: JsArray,
+      patch: JsonPatch[JsValue],
       error: String,
       comment: Option[String],
       disabled: Option[Boolean]) extends ConformanceTest
@@ -48,38 +50,32 @@ abstract class TestRfcConformance[JsValue, Instance <: DiffsonInstance[JsValue]]
   def scalatest(t: ConformanceTest) = t match {
     case SuccessConformanceTest(doc, patch, Some(expected), comment, Some(true)) =>
       ignore(comment.getOrElse(f"$doc patched with $patch")) {
-        val p = JsonPatch(patch)
-        p(doc) should be(expected)
+        patch[Try](doc).get should be(expected)
       }
     case SuccessConformanceTest(doc, patch, Some(expected), comment, _) =>
       test(comment.getOrElse(f"$doc patched with $patch")) {
-        val p = JsonPatch(patch)
-        p(doc) should be(expected)
+        patch[Try](doc).get should be(expected)
       }
     case SuccessConformanceTest(doc, patch, None, comment, Some(true)) =>
       ignore(comment.getOrElse(f"$doc patched with $patch")) {
-        val p = JsonPatch(patch)
-        p(doc)
+        patch[Try](doc).get
       }
     case SuccessConformanceTest(doc, patch, None, comment, _) =>
       test(comment.getOrElse(f"$doc patched with $patch")) {
-        val p = JsonPatch(patch)
-        p(doc)
+        patch[Try](doc).get
       }
 
     case ErrorConformanceTest(doc, patch, error, comment, Some(true)) =>
       ignore(comment.getOrElse(f"$doc patched with $patch")) {
         val exn = intercept[DiffsonException] {
-          val p = JsonPatch(patch)
-          p(doc)
+          patch[Try](doc).get
         }
         exn.getMessage should be(error)
       }
     case ErrorConformanceTest(doc, patch, error, comment, _) =>
       test(comment.getOrElse(f"$doc patched with $patch")) {
         val exn = intercept[DiffsonException] {
-          val p = JsonPatch(patch)
-          p(doc)
+          patch[Try](doc).get
         }
         exn.getMessage should be(error)
       }

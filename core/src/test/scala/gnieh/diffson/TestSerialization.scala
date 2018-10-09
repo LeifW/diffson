@@ -3,10 +3,10 @@ package test
 
 import org.scalatest._
 
-abstract class TestSerialization[JsValue, Instance <: DiffsonInstance[JsValue]](val instance: Instance) extends FlatSpec with Matchers {
+/*
+abstract class TestSerialization[JsValue](implicit val J: JsonProvider[JsValue]) extends FlatSpec with Matchers {
 
-  import instance._
-  import provider._
+  import J._
 
   implicit def boolMarshaller: Marshaller[Boolean]
   implicit def intMarshaller: Marshaller[Int]
@@ -123,3 +123,4 @@ abstract class TestSerialization[JsValue, Instance <: DiffsonInstance[JsValue]](
 
 case class Json(a: Int, b: Boolean, c: String, d: List[Int])
 
+*/

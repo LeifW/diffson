@@ -22,20 +22,21 @@ import io.circe._
 import io.circe.Decoder.Result
 import io.circe.syntax._
 
-object circe extends CirceInstance
+object circe extends CirceProvider
 
-class CirceInstance extends DiffsonInstance[Json] {
+class CirceProvider extends JsonProvider[Json] {
 
+  /*
   object DiffsonProtocol extends DiffsonProtocol
 
   trait DiffsonProtocol {
 
-    implicit val pointerEncoder: Encoder[JsonPointer] =
+    implicit val pointerEncoder: Encoder[Pointer] =
       Encoder[String].contramap(_.serialize)
 
-    implicit val pointerDecoder: Decoder[JsonPointer] =
+    implicit val pointerDecoder: Decoder[Pointer] =
       Decoder[String].emap { s =>
-        Either.catchNonFatal(JsonPointer.parse(s))
+        Either.catchNonFatal(Pointer.parse(s))
           .leftMap(_.getMessage)
       }
 
@@ -92,84 +93,62 @@ class CirceInstance extends DiffsonInstance[Json] {
         override def apply(c: HCursor): Result[Operation] =
           F.flatMap(c.get[String]("op").leftMap(_.withMessage("missing 'op' field"))) {
             case "add" =>
-              A.map2(c.get[JsonPointer]("path"), c.get[Json]("value"))(Add)
+              A.map2(c.get[Pointer]("path"), c.get[Json]("value"))(Add)
                 .leftMap(_.withMessage("missing 'path' or 'value' field"))
             case "remove" =>
-              A.map2(c.get[JsonPointer]("path"), c.get[Option[Json]]("old"))(Remove)
+              A.map2(c.get[Pointer]("path"), c.get[Option[Json]]("old"))(Remove)
                 .leftMap(_.withMessage("missing 'path' or 'old' field"))
             case "replace" =>
-              A.map3(c.get[JsonPointer]("path"), c.get[Json]("value"), c.get[Option[Json]]("old"))(Replace)
+              A.map3(c.get[Pointer]("path"), c.get[Json]("value"), c.get[Option[Json]]("old"))(Replace)
                 .leftMap(_.withMessage("missing 'path' or 'value' field"))
             case "move" =>
-              A.map2(c.get[JsonPointer]("from"), c.get[JsonPointer]("path"))(Move)
+              A.map2(c.get[Pointer]("from"), c.get[Pointer]("path"))(Move)
                 .leftMap(_.withMessage("missing 'from' or 'path' field"))
             case "copy" =>
-              A.map2(c.get[JsonPointer]("from"), c.get[JsonPointer]("path"))(Copy)
+              A.map2(c.get[Pointer]("from"), c.get[Pointer]("path"))(Copy)
                 .leftMap(_.withMessage("missing 'from' or 'path' field"))
             case "test" =>
-              A.map2(c.get[JsonPointer]("path"), c.get[Json]("value"))(Test)
+              A.map2(c.get[Pointer]("path"), c.get[Json]("value"))(Test)
                 .leftMap(_.withMessage("missing 'path' or 'value' field"))
             case other =>
               Left(DecodingFailure(s"""Unknown operation "$other"""", c.history))
           }
       }
 
-    implicit val jsonPatchEncoder: Encoder[JsonPatch] =
+    implicit val jsonPatchEncoder: Encoder[JsonPatch[Json]] =
       Encoder[List[Json]].contramap(_.ops.map(_.asJson))
 
-    implicit val jsonPatchDecoder: Decoder[JsonPatch] =
-      new Decoder[JsonPatch] {
+    implicit val jsonPatchDecoder: Decoder[JsonPatch[Json]] =
+      new Decoder[JsonPatch[Json]] {
 
         private val F = FlatMap[Result]
 
-        override def apply(c: HCursor): Result[JsonPatch] =
+        override def apply(c: HCursor): Result[JsonPatch[Json]] =
           F.flatMap(c.as[List[Json]]) { list =>
-            F.map(list.traverse(_.as[Operation]))(JsonPatch(_))
+            F.map(list.traverse(_.as[Operation]))(JsonPatch[Json](_))
           }
       }
   }
+  */
 
-  object provider extends JsonProvider {
+  val JsNull: Json =
+    io.circe.Json.Null
 
-    type Marshaller[T] = Encoder[T]
-    type Unmarshaller[T] = Decoder[T]
+  def applyArray(elems: Vector[Json]): Json =
+    io.circe.Json.fromValues(elems)
 
-    val JsNull: Json =
-      io.circe.Json.Null
+  def applyObject(fields: Map[String, Json]): Json =
+    io.circe.Json.fromFields(fields)
 
-    def applyArray(elems: Vector[Json]): Json =
-      io.circe.Json.fromValues(elems)
+  def compactPrint(value: Json): String =
+    value.noSpaces
 
-    def applyObject(fields: Map[String, Json]): Json =
-      io.circe.Json.fromFields(fields)
+  def prettyPrint(value: Json): String =
+    value.spaces2
 
-    def compactPrint(value: Json): String =
-      value.noSpaces
+  def unapplyArray(value: Json): Option[Vector[Json]] =
+    value.asArray
 
-    def marshall[T: Marshaller](value: T): Json =
-      implicitly[Marshaller[T]].apply(value)
-
-    def unmarshall[T: Unmarshaller](value: Json): T =
-      implicitly[Unmarshaller[T]].apply(value.hcursor).valueOr { e =>
-        throw new DiffsonException(e.message)
-      }
-
-    def parseJson(s: String): Json =
-      io.circe.jawn.parse(s).valueOr(throw _)
-
-    implicit val patchMarshaller: Marshaller[JsonPatch] =
-      DiffsonProtocol.jsonPatchEncoder
-
-    implicit val patchUnmarshaller: Unmarshaller[JsonPatch] =
-      DiffsonProtocol.jsonPatchDecoder
-
-    def prettyPrint(value: Json): String =
-      value.spaces2
-
-    def unapplyArray(value: Json): Option[Vector[Json]] =
-      value.asArray
-
-    def unapplyObject(value: Json): Option[Map[String, Json]] =
-      value.asObject.map(_.toMap)
-  }
+  def unapplyObject(value: Json): Option[Map[String, Json]] =
+    value.asObject.map(_.toMap)
 }
